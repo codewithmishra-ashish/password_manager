@@ -1,13 +1,91 @@
 from customtkinter import *
+from CTkMessagebox import *
+import bcrypt
+import mysql.connector
 from PIL import Image
 import os
 
 root = CTk()
-root.resizable(0,0)
+root.resizable(0, 0)
 root.geometry("300x350")
 root.title("PassLock")
 root.config(background="white")
 root.iconbitmap(r"images\icon.ico")
+
+
+# Function to create MySQL database connection
+def create_connection():
+    try:
+        # Replace with your database credentials
+        connection = mysql.connector.connect(
+            host="sql12.freemysqlhosting.net",  # Your Free MySQL Hosting URL
+            user="sql12754918",  # Your MySQL Username
+            password="89TtFHLKSL",  # Your MySQL Password
+            database="sql12754918"  # Your Database Name
+        )
+
+        if connection.is_connected():
+            return connection
+    except mysql.connector.Error as e:
+        CTkMessagebox(width=200, height=100, title="Database Error", message=str(e), icon="warning")
+        return None
+
+# Function to hash the password before saving it in the database
+def hash_password(password):
+    salt = bcrypt.gensalt()
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt)
+    return hashed_password.decode('utf-8')
+
+
+# Function to handle signup form submission
+def on_signup_button_click():
+    username = uname_entry.get()
+    password = pwd_entry.get()
+    if username and password:
+        connection = create_connection()
+        if connection:
+            cursor = connection.cursor()
+            hashed_password = hash_password(password)
+            try:
+                cursor.execute("INSERT INTO users (username, password_hash) VALUES (%s, %s)", (username, hashed_password))
+                connection.commit()
+                CTkMessagebox(width=200, height=100, title="SignUp", message="User successfully registered!", icon="check")
+            except mysql.connector.Error as err:
+                CTkMessagebox(width=200, height=100, title="SignUp Error", message=str(err), icon="warning")
+            finally:
+                cursor.close()
+                connection.close()
+    else:
+        CTkMessagebox(width=200, height=100, title="Input Error", message="Please fill out all fields.", icon="info")
+
+# Function to handle login form submission
+def on_login_button_click():
+    username = uname_entry.get()
+    password = pwd_entry.get()
+    if username and password:
+            connection = create_connection()
+    if connection:
+        cursor = connection.cursor()
+        cursor.execute("SELECT password_hash FROM users WHERE username = %s", (username,))
+        result = cursor.fetchone()
+        if result:
+            stored_hash = result[0]
+            if bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8')):
+                CTkMessagebox(width=200, height=100, title="Login", message="Login Successful!", icon="check")
+            else:
+                # Show only one message box and exit the function
+                CTkMessagebox(width=200, height=100, title="Login", message="Incorrect password!", icon="cancel")
+                return  # Prevent further execution
+        else:
+            # Show only one message box and exit the function
+            CTkMessagebox(width=200, height=100, title="Login", message="Username not found!", icon="cancel")
+            return  # Prevent further execution
+        cursor.close()
+        connection.close()
+
+    else:
+        CTkMessagebox(width=200, height=100, title="Input Error", message="Please fill out all fields.", icon="info")
+
 
 # Logo Frame
 logo_frame = CTkFrame(root, width=300, height=120, fg_color="white", bg_color="white")  # You can keep the bg_color white or set it transparent if desired
@@ -46,7 +124,7 @@ pwd_entry = CTkEntry(entry_frame, show="*", fg_color="white", text_color="black"
 pwd_entry.grid(row=4, column=1, pady=10)
 
 # Login Button
-topic = CTkButton(root, text="Login", cursor="hand2", corner_radius=5, bg_color="white", width=100, font=("Goudy Old Style", 20, "bold"))
+topic = CTkButton(root, text="Login", cursor="hand2", corner_radius=5, bg_color="white", width=100, font=("Goudy Old Style", 20, "bold"), command=on_login_button_click)
 topic.grid(row=6, column=0, pady=5)
 
 root.mainloop()
