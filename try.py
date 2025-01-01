@@ -6,11 +6,27 @@ from PIL import Image
 import os
 
 root = CTk()
-root.resizable(0, 0)
+root.resizable(0,0)
 root.geometry("300x400")  # Adjusted height to accommodate new fields
 root.title("PassLock")
 root.config(background="white")
 root.iconbitmap(r"images\icon.ico")
+
+# Logo Frame
+logo_frame = CTkFrame(root, width=300, height=120, fg_color="white", bg_color="white")  # You can keep the bg_color white or set it transparent if desired
+logo_frame.grid(row=0, column=0)
+
+image_path = os.path.join(os.path.dirname(os.path.relpath(__file__)), "images")
+icon = CTkImage(Image.open(os.path.join(image_path, "icon.png")), size=(100, 100))
+logo_image = CTkLabel(logo_frame, image=icon, text="", bg_color="white")  # Transparent background
+logo_image.place(x=15, y=10)
+
+app_intro = CTkLabel(logo_frame, text="-Your Password Manager", text_color="black", fg_color="transparent", bg_color="transparent", font=("Goudy Old Style", 12.5, "bold"))
+app_intro.place(x=160, y=73)
+app_name = CTkLabel(logo_frame, text="PassLock", text_color="black", bg_color="transparent", font=("Goudy Old Style", 45, "bold"))
+app_name.place(x=120, y=30)
+
+
 
 # Function to create MySQL database connection
 def create_connection():
@@ -22,6 +38,7 @@ def create_connection():
             password="89TtFHLKSL",  # Your MySQL Password
             database="sql12754918"  # Your Database Name
         )
+
         if connection.is_connected():
             return connection
     except mysql.connector.Error as e:
@@ -81,6 +98,7 @@ def on_signup_button_click():
             cursor.close()
             connection.close()
 
+
 # Function to handle login form submission
 def on_login_button_click():
     username = uname_entry.get()
@@ -102,25 +120,76 @@ def on_login_button_click():
             cursor.close()
             connection.close()
 
-# Function to switch between login and signup tabs
+# Function to handle signup form submission
+def on_signup_button_click():
+    username = uname_entry.get()
+    password = pwd_entry.get()
+    if username and password:
+        connection = create_connection()
+        if connection:
+            cursor = connection.cursor()
+            hashed_password = hash_password(password)
+            try:
+                cursor.execute("INSERT INTO users (username, password_hash) VALUES (%s, %s)", (username, hashed_password))
+                connection.commit()
+                CTkMessagebox(width=200, height=100, title="SignUp", message="User successfully registered!", icon="check")
+            except mysql.connector.Error as err:
+                CTkMessagebox(width=200, height=100, title="SignUp Error", message=str(err), icon="warning")
+            finally:
+                cursor.close()
+                connection.close()
+    else:
+        CTkMessagebox(width=200, height=100, title="Input Error", message="Please fill out all fields.", icon="info")
+
+# Function to handle login form submission
+def on_login_button_click():
+    username = uname_entry.get()
+    password = pwd_entry.get()
+    if username and password:
+            connection = create_connection()
+    if connection:
+        cursor = connection.cursor()
+        cursor.execute("SELECT password_hash FROM users WHERE username = %s", (username,))
+        result = cursor.fetchone()
+        if result:
+            stored_hash = result[0]
+            if bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8')):
+                CTkMessagebox(width=200, height=100, title="Login", message="Login Successful!", icon="check")
+            else:
+                # Show only one message box and exit the function
+                CTkMessagebox(width=200, height=100, title="Login", message="Incorrect password!", icon="cancel")
+                return  # Prevent further execution
+        else:
+            # Show only one message box and exit the function
+            CTkMessagebox(width=200, height=100, title="Login", message="Username not found!", icon="cancel")
+            return  # Prevent further execution
+        cursor.close()
+        connection.close()
+
+    else:
+        CTkMessagebox(width=200, height=100, title="Input Error", message="Please fill out all fields.", icon="info")
+
+
 def switch_tabs(switch_to):
-    if switch_to == "signup":
+
+    if (switch_to == "signup"):
         for widgets in content_frame.winfo_children():
             widgets.destroy()
         signup_func()
+
     else:
         for widgets in content_frame.winfo_children():
             widgets.destroy()
         login_func()
     return
 
-# Main content frame
 content_frame = CTkFrame(root, fg_color="white", bg_color="white")
 content_frame.grid(row=1, column=0)
 
+
 # Function for signup tab content
 def signup_func():
-    root.geometry("310x405")
+    root.geometry("320x450")
 
     signup_label = CTkLabel(content_frame, text="SIGNUP SYSTEM", padx=10, pady=10, fg_color="white", bg_color="white", text_color="dark blue", anchor="w", font=("Roboto", 30, "bold"))
     signup_label.grid(row=1, column=0, pady=10, columnspan=2)
@@ -150,19 +219,16 @@ def signup_func():
     register_button = CTkButton(content_frame, text="Register", cursor="hand2", corner_radius=5, bg_color="white", width=100, font=("Goudy Old Style", 20, "bold"), command=on_signup_button_click)
     register_button.grid(row=9, column=0, pady=10, columnspan=2)
 
-    tab_frame = CTkFrame(content_frame, fg_color="white", bg_color="white", width=310)
+    tab_frame = CTkFrame(content_frame, fg_color="white", bg_color="white")
     tab_frame.grid(row=11, column=0, pady=15, columnspan=2)
-    login_tab_button = CTkButton(tab_frame, text="Login", cursor="hand2", hover=False, bg_color="transparent", fg_color="transparent", text_color="blue", width=100, font=("Arial", 15), command=lambda: switch_tabs(switch_to="login"))
-    login_tab_button.place(x=180, y=0)
+    login_tab_button = CTkButton(tab_frame, text="Login", cursor="hand2", hover=False, bg_color="transparent", fg_color="transparent", text_color="blue", width=100, font=("Arial", 15, "bold"), command=lambda: switch_tabs(switch_to="login"))
+    login_tab_button.place(x=110, y=0)
     login_label = CTkLabel(tab_frame, text="Already have an account?", text_color="black", font=("Arial", 15))
-    login_label.place(x=45, y=0)
+    login_label.place(x=0, y=0)
 
     return
-
-# Function for login tab content
 def login_func():
     root.geometry("300x350")
-    
     login_label = CTkLabel(content_frame, text="LOGIN SYSTEM", padx=10, pady=10, fg_color="white", bg_color="white", text_color="dark blue", anchor="w", font=("Roboto", 30, "bold"))
     login_label.grid(row=1, column=0, pady=10, columnspan=2)
     
@@ -178,30 +244,18 @@ def login_func():
     pwd_entry = CTkEntry(content_frame, show="*", fg_color="white", text_color="black", border_width=2, border_color="black")
     pwd_entry.grid(row=4, column=1)
     
-    login_button = CTkButton(content_frame, text="Login", cursor="hand2", corner_radius=5, bg_color="white", width=100, font=("Goudy Old Style", 20, "bold"), command=on_login_button_click)
-    login_button.grid(row=6, column=0, pady=10, columnspan=2)
+    topic = CTkButton(content_frame, text="Login", cursor="hand2", corner_radius=5, bg_color="white", width=100, font=("Goudy Old Style", 20, "bold"), command=on_login_button_click)
+    topic.grid(row=6, column=0, pady=10, columnspan=2)
 
-    tab_frame = CTkFrame(content_frame, fg_color="white", bg_color="white",width=300)
+    tab_frame = CTkFrame(content_frame, fg_color="white", bg_color="white")
     tab_frame.grid(row=7, column=0, pady=15, columnspan=2)
-    signup_tab_button = CTkButton(tab_frame, text="Sign Up", cursor="hand2", hover=False, bg_color="white", fg_color="white", text_color="blue", width=100, font=("Arial", 15), command=lambda: switch_tabs(switch_to="signup"))
-    signup_tab_button.place(x=170, y=0)
-    signup_label = CTkLabel(tab_frame, text="Don't have an account?", text_color="black", font=("Arial", 15))
-    signup_label.place(x=40, y=0)
+    signup_tab_botton = CTkButton(tab_frame, text="Sign Up", cursor="hand2", hover=FALSE, bg_color="white", fg_color="white", text_color="blue", width=100, font=("Arial", 15), command=lambda: switch_tabs(switch_to="signup"))
+    signup_tab_botton.place(x=110, y=0)
+    signup_label = CTkLabel(tab_frame, text="Don't have account,", text_color="black", font=("Arial", 15))
+    signup_label.place(x=0, y=0)
 
-# Logo Frame
-logo_frame = CTkFrame(root, width=300, height=120, fg_color="white", bg_color="white")  # You can keep the bg_color white or set it transparent if desired
-logo_frame.grid(row=0, column=0)
-
-image_path = os.path.join(os.path.dirname(os.path.relpath(__file__)), "images")
-icon = CTkImage(Image.open(os.path.join(image_path, "icon.png")), size=(100, 100))
-logo_image = CTkLabel(logo_frame, image=icon, text="", bg_color="white")  # Transparent background
-logo_image.place(x=15, y=10)
-
-app_intro = CTkLabel(logo_frame, text="-Your Password Manager", text_color="black", fg_color="transparent", bg_color="transparent", font=("Goudy Old Style", 12.5, "bold"))
-app_intro.place(x=160, y=73)
-app_name = CTkLabel(logo_frame, text="PassLock", text_color="black", bg_color="transparent", font=("Goudy Old Style", 45, "bold"))
-app_name.place(x=120, y=30)
 
 
 login_func()
+# Start the Tkinter event loop
 root.mainloop()
