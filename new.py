@@ -46,6 +46,7 @@ def username_exists(username):
         return result is not None
     return False
 
+
 # Function to handle signup form submission
 def on_signup_button_click():
     username = uname_entry.get()
@@ -74,12 +75,61 @@ def on_signup_button_click():
         try:
             cursor.execute("INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s)", (username, email, hashed_password))
             connection.commit()
+            # Show success message
             CTkMessagebox(width=200, height=100, title="SignUp", message="User successfully registered!", icon="check")
+            root.after(1000, on_registration_success)  # Wait 1 second before switching to login screen
         except mysql.connector.Error as err:
             CTkMessagebox(width=200, height=100, title="SignUp Error", message=str(err), icon="warning")
         finally:
             cursor.close()
             connection.close()
+
+# Callback function to be called when the registration success messagebox's "OK" is pressed
+def on_registration_success():
+    # Switch to login page and remove signup tab
+    switch_tabs("login", remove_signup_tab=True)
+
+# Function to switch between login and signup tabs
+def switch_tabs(switch_to, remove_signup_tab=False):
+    # Clear the content frame first
+    for widgets in content_frame.winfo_children():
+        widgets.destroy()
+
+    if switch_to == "signup":
+        signup_func()
+    else:
+        login_func(remove_signup_tab)  # Pass the flag to login_func to remove signup tab
+
+# Function for login tab content (remove signup tab if the flag is True)
+def login_func(remove_signup_tab=False):
+    root.geometry("300x350")
+    
+    login_label = CTkLabel(content_frame, text="LOGIN SYSTEM", padx=10, pady=10, fg_color="white", bg_color="white", text_color="dark blue", anchor="w", font=("Roboto", 30, "bold"))
+    login_label.grid(row=1, column=0, pady=10, columnspan=2)
+    
+    global uname_entry, pwd_entry
+
+    uname_label = CTkLabel(content_frame, text="Username:", padx=10, pady=10, text_color="black", anchor="w", font=("Arial", 15, "bold"))
+    uname_label.grid(row=2, column=0)
+    uname_entry = CTkEntry(content_frame, fg_color="white", text_color="black", border_width=2, border_color="black")
+    uname_entry.grid(row=2, column=1)
+
+    pwd_label = CTkLabel(content_frame, text="Password:", padx=10, pady=10, text_color="black", font=("Arial", 15, "bold"))
+    pwd_label.grid(row=4, column=0)
+    pwd_entry = CTkEntry(content_frame, show="*", fg_color="white", text_color="black", border_width=2, border_color="black")
+    pwd_entry.grid(row=4, column=1)
+    
+    login_button = CTkButton(content_frame, text="Login", cursor="hand2", corner_radius=5, bg_color="white", width=100, font=("Goudy Old Style", 20, "bold"), command=on_login_button_click)
+    login_button.grid(row=6, column=0, pady=10, columnspan=2)
+
+    # Add the signup tab if not removed
+    if not remove_signup_tab:
+        tab_frame = CTkFrame(content_frame, fg_color="white", bg_color="white", width=300)
+        tab_frame.grid(row=7, column=0, pady=15, columnspan=2)
+        signup_tab_button = CTkButton(tab_frame, text="Sign Up", cursor="hand2", hover=False, bg_color="white", fg_color="white", text_color="blue", width=100, font=("Arial", 15), command=lambda: switch_tabs(switch_to="signup"))
+        signup_tab_button.place(x=170, y=0)
+        signup_label = CTkLabel(tab_frame, text="Don't have an account?", text_color="black", font=("Arial", 15))
+        signup_label.place(x=40, y=0)
 
 # Function to handle login form submission
 def on_login_button_click():
@@ -102,17 +152,6 @@ def on_login_button_click():
             cursor.close()
             connection.close()
 
-# Function to switch between login and signup tabs
-def switch_tabs(switch_to):
-    if switch_to == "signup":
-        for widgets in content_frame.winfo_children():
-            widgets.destroy()
-        signup_func()
-    else:
-        for widgets in content_frame.winfo_children():
-            widgets.destroy()
-        login_func()
-    return
 
 # Main content frame
 content_frame = CTkFrame(root, fg_color="white", bg_color="white")
@@ -159,34 +198,6 @@ def signup_func():
 
     return
 
-# Function for login tab content
-def login_func():
-    root.geometry("300x350")
-    
-    login_label = CTkLabel(content_frame, text="LOGIN SYSTEM", padx=10, pady=10, fg_color="white", bg_color="white", text_color="dark blue", anchor="w", font=("Roboto", 30, "bold"))
-    login_label.grid(row=1, column=0, pady=10, columnspan=2)
-    
-    global uname_entry, pwd_entry
-
-    uname_label = CTkLabel(content_frame, text="Username:", padx=10, pady=10, text_color="black", anchor="w", font=("Arial", 15, "bold"))
-    uname_label.grid(row=2, column=0)
-    uname_entry = CTkEntry(content_frame, fg_color="white", text_color="black", border_width=2, border_color="black")
-    uname_entry.grid(row=2, column=1)
-
-    pwd_label = CTkLabel(content_frame, text="Password:", padx=10, pady=10, text_color="black", font=("Arial", 15, "bold"))
-    pwd_label.grid(row=4, column=0)
-    pwd_entry = CTkEntry(content_frame, show="*", fg_color="white", text_color="black", border_width=2, border_color="black")
-    pwd_entry.grid(row=4, column=1)
-    
-    login_button = CTkButton(content_frame, text="Login", cursor="hand2", corner_radius=5, bg_color="white", width=100, font=("Goudy Old Style", 20, "bold"), command=on_login_button_click)
-    login_button.grid(row=6, column=0, pady=10, columnspan=2)
-
-    tab_frame = CTkFrame(content_frame, fg_color="white", bg_color="white",width=300)
-    tab_frame.grid(row=7, column=0, pady=15, columnspan=2)
-    signup_tab_button = CTkButton(tab_frame, text="Sign Up", cursor="hand2", hover=False, bg_color="white", fg_color="white", text_color="blue", width=100, font=("Arial", 15), command=lambda: switch_tabs(switch_to="signup"))
-    signup_tab_button.place(x=170, y=0)
-    signup_label = CTkLabel(tab_frame, text="Don't have an account?", text_color="black", font=("Arial", 15))
-    signup_label.place(x=40, y=0)
 
 # Logo Frame
 logo_frame = CTkFrame(root, width=300, height=120, fg_color="white", bg_color="white")  # You can keep the bg_color white or set it transparent if desired
