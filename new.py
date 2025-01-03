@@ -7,7 +7,7 @@ import os
 
 root = CTk()
 root.resizable(0, 0)
-root.geometry("300x400")  # Adjusted height to accommodate new fields
+root.geometry("300x400")
 root.title("PassLock")
 root.config(background="white")
 root.iconbitmap(r"images\icon.ico")
@@ -46,7 +46,6 @@ def username_exists(username):
         return result is not None
     return False
 
-
 # Function to handle signup form submission
 def on_signup_button_click():
     username = uname_entry.get()
@@ -77,17 +76,12 @@ def on_signup_button_click():
             connection.commit()
             # Show success message
             CTkMessagebox(width=200, height=100, title="SignUp", message="User successfully registered!", icon="check")
-            root.after(1000, on_registration_success)  # Wait 1 second before switching to login screen
+            root.after(1000, switch_tabs("login", remove_signup_tab=True))  # Wait 1 second before switching to login screen
         except mysql.connector.Error as err:
             CTkMessagebox(width=200, height=100, title="SignUp Error", message=str(err), icon="warning")
         finally:
             cursor.close()
             connection.close()
-
-# Callback function to be called when the registration success messagebox's "OK" is pressed
-def on_registration_success():
-    # Switch to login page and remove signup tab
-    switch_tabs("login", remove_signup_tab=True)
 
 # Function to switch between login and signup tabs
 def switch_tabs(switch_to, remove_signup_tab=False):
@@ -124,6 +118,7 @@ def login_func(remove_signup_tab=False):
 
     # Add the signup tab if not removed
     if not remove_signup_tab:
+        root.geometry("300x350")
         tab_frame = CTkFrame(content_frame, fg_color="white", bg_color="white", width=300)
         tab_frame.grid(row=7, column=0, pady=15, columnspan=2)
         signup_tab_button = CTkButton(tab_frame, text="Sign Up", cursor="hand2", hover=False, bg_color="white", fg_color="white", text_color="blue", width=100, font=("Arial", 15), command=lambda: switch_tabs(switch_to="signup"))
